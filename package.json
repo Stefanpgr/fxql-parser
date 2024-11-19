@@ -34,7 +34,8 @@
     "morgan": "^1.10.0",
     "reflect-metadata": "^0.2.2",
     "rimraf": "^6.0.1",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "uuid": "^11.0.3"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.7",

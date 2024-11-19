@@ -24,12 +24,10 @@ import {
           ? (exception.getResponse() as any).message || exception.message
           : 'an error occurred';
       console.error(exception.message, exception.stack);
+      const _message = Array.isArray(message) ? message[0] : message
       return response.status(status).json({
-        message,
+        message: _message,
         code: `FXQL-${status}`,
-        stack: exception.stack.split('    ').slice(1, 2),
-        timestamp: new Date().toISOString(),
-        path: request.url,
       });
     }
   }
