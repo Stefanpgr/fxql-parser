@@ -16,9 +16,9 @@ export class FxqlStatementsController {
   @Post()
   @UseGuards(ThrottlerGuard)
   @ApiOperation({summary: "Parses and saves FXQL statements. Ensures that each currency pair appears only once with the latest provided values."})
-  create(@Body() createFxqlStatementDto: CreateFxqlStatementDto) {
+  async create(@Body() createFxqlStatementDto: CreateFxqlStatementDto) {
 
-    return this.fxqlStatementsService.parseAndSaveFXQL(createFxqlStatementDto);
+    return await this.fxqlStatementsService.parseAndSaveFXQL(createFxqlStatementDto);
   }
 
 
