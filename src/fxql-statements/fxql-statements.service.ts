@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateFxqlStatementDto } from './dto/create-fxql-statement.dto';
-import { PrismaService } from 'prisma.service';
+import { PrismaService } from '../prisma.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class FxqlStatementsService {
     const headerValidationRegex = /^(\w{3})-(\w{3}) \{\s*$/gm;
     if (!headerValidationRegex.test(normalizedInput)) {
       throw new BadRequestException(
-        'Invalid format: Each FXQL statements must start with a properly formatted header like "CURR1-CURR2 {".',
+        "Invalid format: Each FXQL statements must start with a properly formatted header like 'CURR1-CURR2 {'.",
       );
     }
 
@@ -41,8 +41,11 @@ export class FxqlStatementsService {
     }
 
     const blocks = normalizedInput.split(/\n\s*\n/); // Split by empty lines into blocks
-
+    if(blocks.length > 1000){
+      throw new BadRequestException('Cannot parse more than 1000 statements per request')
+    }
     const results = new Map<string, any>();
+
     for (const [index, block] of blocks.entries()) {
       try {
         const parsedBlock = this.parseBlock(block.trim(), index + 1);
@@ -63,14 +66,14 @@ export class FxqlStatementsService {
       }
     }
 
-    const data = Array.from(results.values());
 
-    await this.batchUpsert(data);
+    const data = Array.from(results.values());
+    const savedData = await this.batchUpsert(data);
 
     return {
       message: 'Rates Parsed Successfully.',
       code: 'FXQL-200',
-      data: data.map(({ id, ...rest }) => ({ EntryId: id, ...rest })),
+      data: savedData.map(({ id, ...rest }) => ({ EntryId: id, ...rest })),
     };
   }
 
@@ -162,7 +165,8 @@ export class FxqlStatementsService {
           create: entry,
         }),
       );
-      await Promise.all(upsertPromises);
+     return await Promise.all(upsertPromises);
+
     } catch (error) {
       throw new BadRequestException(
         `Batch database upsert failed: ${error.message}`,

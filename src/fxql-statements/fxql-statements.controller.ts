@@ -1,7 +1,7 @@
 import { Controller, Post, Body, HttpCode } from '@nestjs/common';
 import { FxqlStatementsService } from './fxql-statements.service';
 import { CreateFxqlStatementDto } from './dto/create-fxql-statement.dto';
-import { ApiCreatedResponse, ApiOkResponse, ApiSchema, ApiTags } from '@nestjs/swagger';
+import { ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiSchema, ApiTags } from '@nestjs/swagger';
 import { FxqlParserResponseDto } from './entities/fxql-statement.entity';
 
 @ApiTags('FXQL Parser')
@@ -13,6 +13,7 @@ export class FxqlStatementsController {
  
   @HttpCode(200)
   @Post()
+  @ApiOperation({summary: "Parses and saves FXQL statements. Ensures that each currency pair appears only once with the latest provided values."})
   create(@Body() createFxqlStatementDto: CreateFxqlStatementDto) {
 
     return this.fxqlStatementsService.parseAndSaveFXQL(createFxqlStatementDto);
