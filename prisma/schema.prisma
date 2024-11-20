@@ -19,5 +19,7 @@ model FxqlRecords {
   DestinationCurrency String @db.VarChar(4)
   SellPrice           Decimal @db.Decimal(15,4)
   BuyPrice            Decimal @db.Decimal(15,4)
-  CapAmount           Decimal @db.Decimal(15,4)
+  CapAmount           BigInt 
+
+  @@unique([SourceCurrency, DestinationCurrency])
 }

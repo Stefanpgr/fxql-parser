@@ -20,11 +20,20 @@ export class FxqlStatementsService {
 
     const blocks = normalizedInput.split(/\n\s*\n/); // Split by empty lines into blocks
 
-    const results = [];
+    const results = new Map<string, any>();
     for (const [index, block] of blocks.entries()) {
       try {
         const parsedBlock = this.parseBlock(block.trim(), index + 1);
-        results.push(parsedBlock);
+        const pairKey = `${parsedBlock.sourceCurrency}-${parsedBlock.destinationCurrency}`;
+        // This will overwrite the latest block for the same currency pair
+      results.set(pairKey, {
+        id: uuidv4(),
+        SourceCurrency: parsedBlock.sourceCurrency,
+        DestinationCurrency: parsedBlock.destinationCurrency,
+        SellPrice: parsedBlock.sell,
+        BuyPrice: parsedBlock.buy,
+        CapAmount: parsedBlock.cap,
+      });
       } catch (error) {
         throw new BadRequestException(
           `Error in block ${index + 1}: ${error.message}`,
@@ -32,16 +41,9 @@ export class FxqlStatementsService {
       }
     }
 
-    const data = results.map((el) => ({
-      id: uuidv4(),
-      SourceCurrency: el.sourceCurrency,
-      DestinationCurrency: el.destinationCurrency,
-      SellPrice: el.sell,
-      BuyPrice: el.buy,
-      CapAmount: el.cap,
-    }));
+    const data = Array.from(results.values());
 
-    await this.saveData(data);
+    await this.batchUpsert(data);
 
     return {
       message: 'Rates Parsed Successfully.',
@@ -122,6 +124,32 @@ const fieldRegex = /^\s*(BUY|SELL|CAP)\s+(.+)\s*$/;
     } catch (error) {
       throw new BadRequestException(
         `Database insertion failed: ${error.message}`,
+      );
+    }
+  }
+
+  private async batchUpsert(data: any[]) {
+    try {
+      const upsertPromises = data.map((entry) =>
+        this.prismaService.fxqlRecords.upsert({
+          where: {
+            SourceCurrency_DestinationCurrency: {
+              SourceCurrency: entry.SourceCurrency,
+              DestinationCurrency: entry.DestinationCurrency,
+            },
+          },
+          update: {
+            SellPrice: entry.SellPrice,
+            BuyPrice: entry.BuyPrice,
+            CapAmount: entry.CapAmount,
+          },
+          create: entry,
+        }),
+      );
+      await Promise.all(upsertPromises);
+    } catch (error) {
+      throw new BadRequestException(
+        `Batch database upsert failed: ${error.message}`,
       );
     }
   }
