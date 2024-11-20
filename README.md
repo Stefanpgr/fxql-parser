@@ -1,73 +1,139 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo_text.svg" width="320" alt="Nest Logo" /></a>
-</p>
+# FXQL Parser API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A NestJS-based API for parsing and managing FXQL statements. This application validates FXQL inputs, ensures data integrity, and interacts with a PostgreSQL database using Prisma ORM.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
 
-## Description
+- **FXQL Parsing**: Validates and parses FXQL statements, ensuring adherence to defined rules and constraints.
+- **Data Persistence**: Stores FXQL data in a PostgreSQL database, handling upserts to maintain the latest values.
+- **Validation**: Ensures currency codes are uppercase, values are numeric and within specified constraints, and proper formatting of FXQL statements.
+- **Dockerized Deployment**: Easily deployable using Docker.
+- **API Documentation**: Comprehensive API docs for easy integration and usage.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Setup Instructions
 
-## Installation
+### Prerequisites
 
-```bash
-$ npm install
+- **Node.js**: Version 20.x
+- **npm**: Version 8.x or higher
+- **PostgreSQL**: Version 15.x or higher
+- **Docker**: For containerized deployment
+
+### Installation
+
+1. **Clone the Repository**
+
+   ```bash
+   git clone https://github.com/Stefanpgr/fxql-parser
+   cd fxql-parser
+   ```
+2. **Install Dependencies**
+
+   ```bash
+   npm install
+   ```
+3. **Configure Environment Variables**
+
+   - Create a `.env` file in the root directory:
+     ```env
+     DATABASE_URL=postgresql://user:password@localhost:5432/fxql
+     PORT=3000
+     ```
+4. **Run Database Migrations**
+
+   ```bash
+   npx prisma migrate dev
+   ```
+5. **Start the Application**
+
+   ```bash
+   npm run start:dev
+   ```
+
+   - The API will be accessible at `http://localhost:3000`.
+
+## API Documentation
+
+### Base URL
+
+* **Production** :[ https://fxql-parser-z7qu.onrender.com](https://fxql-parser-z7qu.onrender.com)
+* **Development** : `http://localhost:3000`
+
+### Documentation URL
+
+* **Swagger Documentation** : [https://fxql-parser-z7qu.onrender.com/docs](https://fxql-parser-z7qu.onrender.com/docs)
+
+## Local Development
+
+### Running Locally
+
+1. **Ensure PostgreSQL is Running**
+
+   - Make sure your PostgreSQL server is up and accessible using the `DATABASE_URL` provided in your `.env` file.
+2. **Start the Development Server**
+
+   ```bash
+   npm run start:dev
+   ```
+
+   - This runs the application in development mode with hot-reloading.
+
+### Testing
+
+1. **Run Unit Tests**
+
+   ```bash
+   npm run test
+   ```
+2. **Run End-to-End Tests**
+
+   ```bash
+   npm run test:e2e
+   ```
+
+## Environment Variables
+
+The application relies on the following environment variables:
+
+- `DATABASE_URL`: Connection string for the PostgreSQL database.
+  - **Format**: `postgresql://USER:PASSWORD@HOST:PORT/DATABASE`
+- `PORT`: Port on which the application runs (default is `3000`).
+
+**Example `.env` File**:
+
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/fxql
+PORT=3000
 ```
 
-## Running the app
 
-```bash
-# development
-$ npm run start
 
-# watch mode
-$ npm run start:dev
+## Assumptions and Design Decisions
 
-# production mode
-$ npm run start:prod
-```
+1. **Duplicate Currency Pairs** :
 
-## Test
+* if the same currency pair appears multiple times, the latest block is saved. This is implemented using a `Map` to ensure unique keys and to optimize for lookups. The key in the map (`${parsedBlock.sourceCurrency}-${parsedBlock.destinationCurrency}`) ensures that only the latest block for each currency pair is retained:
+* Earlier entries for the same currency pair are replaced, reducing memory usage.
+* No need to keep a separate list of all parsed blocks for comparison.
 
-```bash
-# unit tests
-$ npm run test
+2. **Validation Rules** :
 
-# e2e tests
-$ npm run test:e2e
+* I thought of using Node.js Stream Instead of loading the entire FXQL input into memory, parse it line-by-line using Node.js streams. This is useful for large inputs, as it reduces memory usage and improves efficiency. However it was a bit more complex so I opted for  a simpler yet efficient solution (Regular Expression) for parsing which still reduces memory usage by avoiding assigning the array to a variable which would load it into memory, so the parsing is done without first loading it in memory. By doing this, I am able to squeeeze some performace (hopefully).
 
-# test coverage
-$ npm run test:cov
-```
+**- Block Formatting** :
 
-## Support
+* Each block must start with a valid currency pair in the format `CURR1-CURR2 {`.
+* The opening brace `{` must directly follow the currency pair, separated by a single space.
+* The closing brace `}` must be on its own line.
+* using` this.parseBlock(block.trim(), index + 1);` I was able to process the blocks incrementally to ensure that only the currently processed block occupies memory.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+This formatting type helps structure the statements into blocks for easy processing.
 
-## Stay in touch
+3. **Database Upsert** :
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+* Batch upsert is used to optimize database writes.The `batchUpsert` method accepts an array of entries and processes them in parallel using `Promise.all`. By using `Promise.all`, all `upsert` operations run concurrently, improving performance for large entries, in this case at most 1000.
 
-## License
+4. **Graceful Degradation** :
 
-Nest is [MIT licensed](LICENSE).
+* If a single block fails validation, it does not affect other valid blocks in the request.
+* Only the valid blocks are processed and saved.
