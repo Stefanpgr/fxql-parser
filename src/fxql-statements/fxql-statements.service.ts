@@ -2,6 +2,8 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateFxqlStatementDto } from './dto/create-fxql-statement.dto';
 import { PrismaService } from '../prisma.service';
 import { v4 as uuidv4 } from 'uuid';
+import { CurrencyPair, FxqlBlock } from 'src/interface/parser';
+import { FxqlRecords } from '@prisma/client';
 
 @Injectable()
 export class FxqlStatementsService {
@@ -12,7 +14,6 @@ export class FxqlStatementsService {
     // Unescape and normalize the input string
 
     const normalizedInput = fxqlInput.replace(/\\n/g, '\n').trim();
-
 
     // Validate for multiple newlines or invalid spacing between blocks
     if (/\n{3,}/.test(normalizedInput)) {
@@ -41,10 +42,12 @@ export class FxqlStatementsService {
     }
 
     const blocks = normalizedInput.split(/\n\s*\n/); // Split by empty lines into blocks
-    if(blocks.length > 1000){
-      throw new BadRequestException('Cannot parse more than 1000 statements per request')
+    if (blocks.length > 1000) {
+      throw new BadRequestException(
+        'Cannot parse more than 1000 statements per request',
+      );
     }
-    const results = new Map<string, any>();
+    const results = new Map<string, FxqlBlock>();
 
     for (const [index, block] of blocks.entries()) {
       try {
@@ -66,7 +69,6 @@ export class FxqlStatementsService {
       }
     }
 
-
     const data = Array.from(results.values());
     const savedData = await this.batchUpsert(data);
 
@@ -87,12 +89,13 @@ export class FxqlStatementsService {
     const headerMatch = lines[0].trim().match(headerRegex);
 
     if (!headerMatch) {
-      throw new Error('Invalid currency pair header format. Expected CURR1-CURR2 {');
+      throw new Error(
+        'Invalid currency pair header format. Expected CURR1-CURR2 {',
+      );
     }
     const currencyPairSplit = Array.from(headerMatch);
     const curr1 = currencyPairSplit[1];
     const curr2 = currencyPairSplit[2];
-
 
     if (curr1 !== curr1.toUpperCase()) {
       throw new Error(
@@ -104,7 +107,7 @@ export class FxqlStatementsService {
       );
     }
     const [_, sourceCurrency, destinationCurrency] = headerMatch;
-    const data = { sourceCurrency, destinationCurrency } as any;
+    const data: Partial<CurrencyPair> = { sourceCurrency, destinationCurrency };
 
     // Process data lines (BUY, SELL, CAP)
     for (let i = 1; i < lines.length; i++) {
@@ -144,12 +147,12 @@ export class FxqlStatementsService {
       throw new Error(`Missing required fields in statement.`);
     }
 
-    return data;
+    return data as CurrencyPair;
   }
 
-  private async batchUpsert(data: any[]) {
-    try {
-      const upsertPromises = data.map((entry) =>
+  private async batchUpsert(data: FxqlBlock[]): Promise<FxqlRecords[]> {
+    return Promise.all(
+      data.map((entry) =>
         this.prismaService.fxqlRecords.upsert({
           where: {
             SourceCurrency_DestinationCurrency: {
@@ -164,13 +167,7 @@ export class FxqlStatementsService {
           },
           create: entry,
         }),
-      );
-     return await Promise.all(upsertPromises);
-
-    } catch (error) {
-      throw new BadRequestException(
-        `Batch database upsert failed: ${error.message}`,
-      );
-    }
+      ),
+    );
   }
 }
