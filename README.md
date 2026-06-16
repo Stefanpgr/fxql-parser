@@ -61,7 +61,7 @@ A NestJS-based API for parsing and managing FXQL statements. This application va
 
 ### Documentation URL
 
-* **Swagger Documentation** : [https://fxql-parser-z7qu.onrender.com/docs](https://fxql-parser-z7qu.onrender.com/docs)
+* **Swagger Documentation** : [https://dev-time.docs.buildwithfern.com/fx-trading-app/activities]([https://fxql-parser-z7qu.onrender.com/docs](https://dev-time.docs.buildwithfern.com/fx-trading-app/activities))
 
 ## Local Development
 
